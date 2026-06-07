@@ -12,13 +12,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. 安装 NDK (并获取其真实路径)
+      # 1. 设置 NDK (并获取其安装路径)
       - name: Setup Android NDK
-        id: ndk
+        id: setup-ndk
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r25c
           add-to-path: true
+          local-cache: true
 
       # 2. 手动安装 Ninja 和 Vulkan 依赖
       - name: Install build tools
@@ -30,23 +31,20 @@ jobs:
       - name: Setup CMake
         uses: lukka/get-cmake@latest
 
-      # 4. 调试：打印 NDK 路径，确认是否正确
-      - name: Debug NDK path
+      # 4. 强力覆盖环境变量 (解决方案核心)
+      - name: Override NDK environment variables
         run: |
-          echo "ANDROID_NDK_HOME = $ANDROID_NDK_HOME"
-          echo "ndk_path output = ${{ steps.ndk.outputs.ndk_path }}"
+          NDK_PATH="${{ steps.setup-ndk.outputs.ndk-path }}"
+          echo "Correct NDK path is: $NDK_PATH"
+          echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$NDK_PATH" >> $GITHUB_ENV
+          echo "NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
 
-      # 5. 配置 CMake (使用正确的 NDK 路径)
+      # 5. 配置 CMake (显式使用正确路径)
       - name: Configure CMake
         run: |
-          # 优先使用 action 输出的路径，它一定是 Linux 有效路径
-          NDK="${{ steps.ndk.outputs.ndk_path }}"
-          if [ -z "$NDK" ]; then
-            NDK="$ANDROID_NDK_HOME"
-          fi
-          echo "Using NDK at: $NDK"
           cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-24 \
             -DCMAKE_BUILD_TYPE=Release \
@@ -57,7 +55,7 @@ jobs:
       - name: Build
         run: cmake --build build --parallel 4
 
-      # 7. 查找生成的二进制文件（调试用）
+      # 7. 查找二进制文件 (调试用)
       - name: Locate binary
         run: find . -name "UnrealMemoryTools" -type f
 
