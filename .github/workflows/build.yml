@@ -1,58 +1,56 @@
 name: Build UnrealMemoryTools
 
 on:
-workflow_dispatch:
-push:
-branches:
-- main
-- master
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
 
 jobs:
-build:
-runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
 
-```
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
-    with:
-      submodules: recursive
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-  - name: Setup Android SDK
-    uses: android-actions/setup-android@v3
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-  - name: Install NDK r29
-    run: |
-      sdkmanager "ndk;29.0.13113456"
+      - name: Install NDK r29
+        run: |
+          sdkmanager "ndk;29.0.13113456"
 
-  - name: Install Ninja
-    run: |
-      sudo apt update
-      sudo apt install -y ninja-build
+      - name: Install Ninja
+        run: |
+          sudo apt update
+          sudo apt install -y ninja-build
 
-  - name: Patch CMakeLists
-    run: |
-      sed -i '/set(NDK_PATH/d' CMakeLists.txt
-      sed -i '/set(CMAKE_TOOLCHAIN_FILE/d' CMakeLists.txt
+      - name: Patch CMakeLists
+        run: |
+          sed -i '/set(NDK_PATH/d' CMakeLists.txt
+          sed -i '/set(CMAKE_TOOLCHAIN_FILE/d' CMakeLists.txt
 
-  - name: Configure
-    run: |
-      cmake -S . \
+      - name: Configure
+        run: |
+          cmake -S . \
             -B build \
             -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=$ANDROID_SDK_ROOT/ndk/29.0.13113456/build/cmake/android.toolchain.cmake
 
-  - name: Build
-    run: |
-      cmake --build build --config Release -j$(nproc)
+      - name: Build
+        run: |
+          cmake --build build --config Release -j$(nproc)
 
-  - name: Show Outputs
-    run: |
-      find outputs -type f || true
+      - name: Show Outputs
+        run: |
+          find outputs -type f || true
 
-  - name: Upload Artifact
-    uses: actions/upload-artifact@v4
-    with:
-      name: UnrealMemoryTools-arm64-v8a
-      path: outputs/arm64-v8a/**
-```
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: UnrealMemoryTools-arm64-v8a
+          path: outputs/arm64-v8a/**
