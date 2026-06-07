@@ -1,10 +1,8 @@
 name: Build UnrealMemoryTools
 
 on:
-  # 允许手动触发
-  workflow_dispatch:
-  # 推送代码到 main 分支时自动触发
-  push:
+  workflow_dispatch:          # 允许手动触发
+  push:                       # 或每当有代码推送到 main 分支时自动触发
     branches: [ "main" ]
 
 jobs:
@@ -14,12 +12,11 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      # 1. 设置 NDK 环境 (关键步骤)
+      # 1. 设置 Android NDK 环境
       - name: Setup Android NDK
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r25c
-          # 添加 link-to-sdk 环境变量，方便 CMake 找到 NDK
           add-to-path: true
 
       # 2. 设置 CMake 和 Ninja
@@ -39,7 +36,7 @@ jobs:
       - name: Build Project
         run: cmake --build build --parallel 4
 
-      # 5. 上传编译产物 (可执行文件)
+      # 5. 上传编译产物
       - name: Upload Executable
         uses: actions/upload-artifact@v4
         with:
