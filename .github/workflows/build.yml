@@ -1,0 +1,47 @@
+name: Build UnrealMemoryTools
+
+on:
+  # 允许手动触发
+  workflow_dispatch:
+  # 推送代码到 main 分支时自动触发
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # 1. 设置 NDK 环境 (关键步骤)
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+          # 添加 link-to-sdk 环境变量，方便 CMake 找到 NDK
+          add-to-path: true
+
+      # 2. 设置 CMake 和 Ninja
+      - name: Setup CMake & Ninja
+        uses: lukka/get-cmake@latest
+
+      # 3. 配置 CMake 项目
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-24
+
+      # 4. 开始编译
+      - name: Build Project
+        run: cmake --build build --parallel 4
+
+      # 5. 上传编译产物 (可执行文件)
+      - name: Upload Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: UnrealMemoryTools
+          path: outputs/arm64-v8a/UnrealMemoryTools
